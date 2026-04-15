@@ -252,7 +252,6 @@ body {
   background: var(--card-bg);
 }
 .matrix-table {
-  width: 100%;
   border-collapse: collapse;
   text-align: left;
 }
@@ -290,7 +289,7 @@ body {
   overflow: hidden;
   margin-bottom: 16px;
   position: relative;
-  min-width: 250px;
+  width: 270px;
 }
 .matrix-mini-post:last-child {
   margin-bottom: 0;
