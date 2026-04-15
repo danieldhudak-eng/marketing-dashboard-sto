@@ -3,13 +3,20 @@ import axios from 'axios';
 import { createClient } from '@supabase/supabase-js';
 import { RefreshCw, LayoutDashboard, Settings, Grid, Copy, Check } from 'lucide-react';
 
+const formatNumber = (num) => {
+    if (num === null || num === undefined) return '0';
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+    return num.toString();
+};
+
 const App = () => {
   const [account, setAccount] = useState('cz');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [loading, setLoading] = useState(false);
   const [campaignFilter, setCampaignFilter] = useState('Post'); 
-  const [viewMode, setViewMode] = useState('overview'); // overview | matrix
+  const [viewMode, setViewMode] = useState('overview');
 
   const [posts, setPosts] = useState([]);
   const [kpis, setKpis] = useState({ spend: 0, impressions: 0, reach: 0, thruPlays: 0, engagements: 0, linkClicks: 0, followers: 0 });
@@ -17,10 +24,9 @@ const App = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [apiKeys, setApiKeys] = useState({ token: '', czId: '', skId: '', supabaseUrl: '', supabaseAnon: '' });
   
-  // Tagging State
   const [supabaseClient, setSupabaseClient] = useState(null);
   const [categories, setCategories] = useState(['Case Study', 'Reference']);
-  const [tags, setTags] = useState({}); // { "ad_id_123": "Case Study" }
+  const [tags, setTags] = useState({});
   const [newCatName, setNewCatName] = useState('');
   const [copiedSql, setCopiedSql] = useState(false);
 
@@ -41,20 +47,16 @@ const App = () => {
            const client = createClient(parsed.supabaseUrl, parsed.supabaseAnon);
            setSupabaseClient(client);
            loadCloudState(client);
-         } catch(e) { console.error("Supabase Config Error", e); }
+         } catch(e) { console.error(e); }
       }
-    } else {
-      setShowSettings(true);
-    }
+    } else { setShowSettings(true); }
   }, []);
 
   const loadCloudState = async (client) => {
-      const { data, error } = await client.from('app_state').select('categories, tags').eq('id', 1).single();
+      const { data } = await client.from('app_state').select('categories, tags').eq('id', 1).single();
       if (data) {
           if (data.categories) setCategories(data.categories);
           if (data.tags) setTags(data.tags);
-      } else {
-          console.warn("Could not load cloud state (Table might not exist yet):", error);
       }
   };
 
@@ -66,22 +68,18 @@ const App = () => {
   const handleAddCategory = () => {
     if (!newCatName.trim() || categories.includes(newCatName.trim())) return;
     const nextList = [...categories, newCatName.trim()];
-    setCategories(nextList);
-    setNewCatName('');
-    syncCloudState(nextList, tags);
+    setCategories(nextList); setNewCatName(''); syncCloudState(nextList, tags);
   };
 
   const handleRemoveCategory = (cat) => {
     const nextList = categories.filter(c => c !== cat);
-    setCategories(nextList);
-    syncCloudState(nextList, tags);
+    setCategories(nextList); syncCloudState(nextList, tags);
   };
 
   const assignTag = (postId, categoryName) => {
     const nextTags = { ...tags, [postId]: categoryName };
-    if (!categoryName) delete nextTags[postId]; // Remove tag if unselected
-    setTags(nextTags);
-    syncCloudState(categories, nextTags);
+    if (!categoryName) delete nextTags[postId];
+    setTags(nextTags); syncCloudState(categories, nextTags);
   };
 
   useEffect(() => {
@@ -93,8 +91,7 @@ const App = () => {
     setShowSettings(false);
     if (apiKeys.supabaseUrl && apiKeys.supabaseAnon) {
        const client = createClient(apiKeys.supabaseUrl, apiKeys.supabaseAnon);
-       setSupabaseClient(client);
-       loadCloudState(client);
+       setSupabaseClient(client); loadCloudState(client);
     }
     if (apiKeys.token) fetchData();
   };
@@ -120,7 +117,7 @@ const App = () => {
       const filteredInsights = insightsData.filter(ins => {
         if (!campaignFilter) return true;
         const cName = ins.campaign_name?.toLowerCase() || '';
-        return campaignFilter.startsWith('-') ? !cName.includes(campaignFilter.substring(1).toLowerCase().trim()) : cName.includes(campaignFilter.toLowerCase().trim());
+        return campaignFilter.startsWith('-') ? !cName.includes(campaignFilter.substring(1).trim()) : cName.includes(campaignFilter.toLowerCase().trim());
       });
 
       if (filteredInsights.length === 0) { setPosts([]); setLoading(false); return; }
@@ -149,14 +146,12 @@ const App = () => {
         newKpis.spend += spend; newKpis.impressions += impressions; newKpis.reach += reach;
         newKpis.linkClicks += linkClicks; newKpis.engagements += postEngagement; newKpis.thruPlays += thruPlays; newKpis.followers += followers;
 
-        // Parse Creation Month
         const cTime = adNode.created_time ? new Date(adNode.created_time) : new Date(dateFrom);
         const monthKey = `${cTime.getFullYear()}-${String(cTime.getMonth()+1).padStart(2, '0')}`;
         const monthLabel = cTime.toLocaleString('default', { month: 'short', year: 'numeric' });
 
         return {
-            id: ins.ad_id,
-            monthKey, monthLabel,
+            id: ins.ad_id, monthKey, monthLabel,
             network: (creative.source_instagram_media_id || (ins.campaign_name || '').toLowerCase().includes('instagram')) ? 'ig' : 'fb',
             text: creative.body || ins.ad_name,
             imageUrl: creative.image_url || creative.thumbnail_url || 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=600&auto=format&fit=crop',
@@ -171,9 +166,7 @@ const App = () => {
     } finally { setLoading(false); }
   };
 
-  // Matrix Configuration
-  const uniqueMonthKeys = [...new Set(posts.map(p => p.monthKey))].sort(); // Sort chronologically
-
+  const uniqueMonthKeys = [...new Set(posts.map(p => p.monthKey))].sort();
   const sqlSetupString = `create table if not exists app_state (\n  id integer primary key default 1,\n  categories jsonb default '["Case Study", "Reference"]'::jsonb,\n  tags jsonb default '{}'::jsonb\n);\ninsert into app_state (id) values (1) on conflict do nothing;`;
 
   return (
@@ -189,8 +182,8 @@ const App = () => {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-              <div><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Czech Ad Account ID</label><input type="text" value={apiKeys.czId} onChange={e => setApiKeys({...apiKeys, czId: e.target.value})} className="control-input" style={{ width: '100%' }} /></div>
-              <div><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Slovak Ad Account ID</label><input type="text" value={apiKeys.skId} onChange={e => setApiKeys({...apiKeys, skId: e.target.value})} className="control-input" style={{ width: '100%' }} /></div>
+              <div><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Czech Ad API ID</label><input type="text" value={apiKeys.czId} onChange={e => setApiKeys({...apiKeys, czId: e.target.value})} className="control-input" style={{ width: '100%' }} /></div>
+              <div><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Slovak Ad API ID</label><input type="text" value={apiKeys.skId} onChange={e => setApiKeys({...apiKeys, skId: e.target.value})} className="control-input" style={{ width: '100%' }} /></div>
             </div>
 
             <hr style={{border: 'none', borderTop: '1px solid var(--border-color)', margin: '24px 0'}}/>
@@ -287,8 +280,12 @@ const App = () => {
                     <div className="post-metrics">
                       {[
                         { label: 'Spend', val: `€${post.metrics.spend.toFixed(2)}` },
-                        { label: 'Impressions', val: post.metrics.impressions.toLocaleString() },
-                        { label: 'Follows / Likes', val: post.metrics.followers.toLocaleString() }
+                        { label: 'Impressions', val: formatNumber(post.metrics.impressions) },
+                        { label: 'Reach', val: formatNumber(post.metrics.reach) },
+                        { label: 'Engagements', val: formatNumber(post.metrics.engagements) },
+                        { label: 'Clicks', val: formatNumber(post.metrics.clicks) },
+                        { label: 'ThruPlays', val: formatNumber(post.metrics.thruPlays) },
+                        { label: 'Follows', val: formatNumber(post.metrics.followers) }
                       ].map(m => (
                         <div key={m.label}><span className="post-metric-label">{m.label}</span><span className="post-metric-value">{m.val}</span></div>
                       ))}
@@ -307,38 +304,45 @@ const App = () => {
                   <table className="matrix-table">
                     <thead>
                       <tr>
-                        <th style={{width: '180px', background: 'var(--bg-color)', zIndex: 10}}>Concept Category</th>
+                        <th className="sticky-cat" style={{width: '200px'}}>Concept Category</th>
                         {uniqueMonthKeys.map(mk => {
                             const sampleDate = posts.find(p => p.monthKey === mk)?.monthLabel || mk;
-                            return <th key={mk}>{sampleDate}</th>
+                            return <th key={mk} style={{minWidth: '320px'}}>{sampleDate}</th>
                         })}
                       </tr>
                     </thead>
                     <tbody>
                       {[...categories, ''].map(category => {
-                         // Filter posts that ONLY matched this category. If category is '', it means uncategorized.
                          const rowPosts = posts.filter(p => category ? tags[p.id] === category : !tags[p.id]);
-                         if (rowPosts.length === 0) return null; // hide empty categories
+                         if (rowPosts.length === 0) return null; 
                          
                          return (
                            <tr key={category || 'uncat'}>
                              <td className="sticky-cat">
-                               {category ? category : <span style={{opacity:0.5}}>Uncategorized Ads</span>}
+                               {category ? category : <span style={{opacity:0.5}}>Uncategorized</span>}
                              </td>
                              {uniqueMonthKeys.map(mk => {
                                 const boxPosts = rowPosts.filter(p => p.monthKey === mk);
                                 return (
                                   <td key={mk} className="matrix-cell">
-                                    {boxPosts.length === 0 && <span style={{opacity:0.1}}>-</span>}
+                                    {boxPosts.length === 0 && <div style={{opacity:0.05, textAlign:'center', marginTop:'16px'}}>Empty</div>}
                                     {boxPosts.map(p => (
                                        <div key={p.id} className="matrix-mini-post">
                                           <div className="m-post-net" style={{background: p.network==='ig'?'linear-gradient(45deg, #f09433, #bc1888)':'#1877F2'}}>{p.network==='ig'?'IG':'FB'}</div>
                                           <img src={p.imageUrl} />
                                           <div className="m-data">
-                                             <div title={p.text} style={{fontWeight:600, fontSize:'11px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.text}</div>
-                                             <div style={{color: 'var(--text-secondary)'}}>Spend: €{p.metrics.spend.toFixed(2)}</div>
-                                             <div style={{color: 'var(--text-secondary)'}}>Impr: {(p.metrics.impressions/1000).toFixed(1)}k</div>
-                                             <div style={{color: 'var(--text-secondary)'}}>Follows: {p.metrics.followers}</div>
+                                             <div title={p.text} style={{fontWeight:600, fontSize:'12px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', marginBottom:'6px', color:'#fff'}}>{p.text}</div>
+                                             
+                                             <div className="m-kpi-grid">
+                                                <div><span>Spend</span> €{p.metrics.spend.toFixed(0)}</div>
+                                                <div><span>Impr</span> {formatNumber(p.metrics.impressions)}</div>
+                                                <div><span>Rch</span> {formatNumber(p.metrics.reach)}</div>
+                                                <div><span>Eng</span> {formatNumber(p.metrics.engagements)}</div>
+                                                <div><span>Clk</span> {formatNumber(p.metrics.clicks)}</div>
+                                                <div><span>Ply</span> {formatNumber(p.metrics.thruPlays)}</div>
+                                                <div><span>Fol</span> {formatNumber(p.metrics.followers)}</div>
+                                             </div>
+
                                           </div>
                                        </div>
                                     ))}
