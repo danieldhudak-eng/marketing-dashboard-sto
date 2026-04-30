@@ -150,21 +150,17 @@ const App = () => {
         const monthKey = `${cTime.getFullYear()}-${String(cTime.getMonth()+1).padStart(2, '0')}`;
         const monthLabel = cTime.toLocaleString('default', { month: 'short', year: 'numeric' });
 
-        let hdImage = creative.image_url;
+        let hdImage = creative.image_url || creative.thumbnail_url;
         if (creative.object_story_spec) {
             const spec = creative.object_story_spec;
             if (spec.video_data && spec.video_data.image_url) {
                 hdImage = spec.video_data.image_url;
             } else if (spec.link_data && spec.link_data.child_attachments && spec.link_data.child_attachments.length > 0) {
-                hdImage = spec.link_data.child_attachments[0].image_url || spec.link_data.child_attachments[0].picture || hdImage;
-            } else if (spec.photo_data && spec.photo_data.url) {
-                hdImage = spec.photo_data.url;
-            } else if (spec.link_data && spec.link_data.picture && !hdImage) {
-                hdImage = spec.link_data.picture;
+                hdImage = spec.link_data.child_attachments[0].image_url || hdImage;
             }
         }
         
-        const bestImageUrl = hdImage || creative.thumbnail_url || 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=600&auto=format&fit=crop';
+        const bestImageUrl = hdImage || 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=600&auto=format&fit=crop';
 
         return {
             id: ins.ad_id, monthKey, monthLabel,
