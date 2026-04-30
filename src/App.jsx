@@ -226,7 +226,7 @@ const App = () => {
 
       <header className="header">
         <div className="header-title">
-           <img src="/sto-logo.png" alt="STO Logo" style={{ height: '32px', marginRight: '16px', objectFit: 'contain' }} />
+           <img src={`${import.meta.env.BASE_URL}sto-logo.png`} alt="STO Logo" style={{ height: '32px', marginRight: '16px', objectFit: 'contain' }} />
            <div style={{display:'flex', background:'#f8fafc', p:4, borderRadius:'8px', overflow:'hidden', border: '1px solid var(--border-color)'}}>
               <div onClick={()=>setViewMode('overview')} style={{padding:'6px 12px', cursor:'pointer', display:'flex', alignItems:'center', gap:'6px', fontSize:'13px', background: viewMode === 'overview' ? '#e2e8f0' : 'transparent', fontWeight: viewMode === 'overview' ? 700 : 500}}><LayoutDashboard size={14}/> Overview</div>
               <div onClick={()=>setViewMode('matrix')} style={{padding:'6px 12px', cursor:'pointer', display:'flex', alignItems:'center', gap:'6px', fontSize:'13px', background: viewMode === 'matrix' ? '#e2e8f0' : 'transparent', fontWeight: viewMode === 'matrix' ? 700 : 500}}><Grid size={14}/> Matrix Report</div>
@@ -398,7 +398,7 @@ const App = () => {
 
       <footer style={{ textAlign: 'center', padding: '4rem 1rem', borderTop: '1px solid var(--border-color)', marginTop: 'auto', background: '#fff' }}>
          <div style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>Engineered by</div>
-         <img src="/opus-logo.png" alt="Opus Magnus" style={{ height: '36px', filter: 'invert(1)', objectFit: 'contain' }} />
+         <img src={`${import.meta.env.BASE_URL}opus-logo.png`} alt="Opus Magnus" style={{ height: '36px', filter: 'invert(1)', objectFit: 'contain' }} />
       </footer>
     </>
   );
