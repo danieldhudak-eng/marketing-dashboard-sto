@@ -172,33 +172,33 @@ const App = () => {
   return (
     <>
       {showSettings && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
-          <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '32px', width: '90%', maxWidth: '500px', boxShadow: '0 24px 48px rgba(0,0,0,0.5)', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
+          <div style={{ background: '#fff', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '32px', width: '90%', maxWidth: '500px', boxShadow: '0 24px 48px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' }}>
             <h2 style={{ margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}><Settings size={22}/> Configuration</h2>
             
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Meta Access Token</label>
-              <input type="password" value={apiKeys.token} onChange={e => setApiKeys({...apiKeys, token: e.target.value})} className="control-input" style={{ width: '100%' }} />
+              <input type="password" value={apiKeys.token} onChange={e => setApiKeys({...apiKeys, token: e.target.value})} className="control-input" style={{ width: '100%', background: '#f8fafc' }} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-              <div><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Czech Ad API ID</label><input type="text" value={apiKeys.czId} onChange={e => setApiKeys({...apiKeys, czId: e.target.value})} className="control-input" style={{ width: '100%' }} /></div>
-              <div><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Slovak Ad API ID</label><input type="text" value={apiKeys.skId} onChange={e => setApiKeys({...apiKeys, skId: e.target.value})} className="control-input" style={{ width: '100%' }} /></div>
+              <div><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Czech Ad API ID</label><input type="text" value={apiKeys.czId} onChange={e => setApiKeys({...apiKeys, czId: e.target.value})} className="control-input" style={{ width: '100%', background: '#f8fafc' }} /></div>
+              <div><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Slovak Ad API ID</label><input type="text" value={apiKeys.skId} onChange={e => setApiKeys({...apiKeys, skId: e.target.value})} className="control-input" style={{ width: '100%', background: '#f8fafc' }} /></div>
             </div>
 
             <hr style={{border: 'none', borderTop: '1px solid var(--border-color)', margin: '24px 0'}}/>
             <h3 style={{fontSize: '15px', marginBottom: '12px'}}>Supabase Database ☁️</h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-              <div><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Project API URL</label><input type="text" value={apiKeys.supabaseUrl} onChange={e => setApiKeys({...apiKeys, supabaseUrl: e.target.value})} className="control-input" style={{ width: '100%' }} placeholder="https://xyz.supabase.co" /></div>
-              <div><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Anon API Key</label><input type="password" value={apiKeys.supabaseAnon} onChange={e => setApiKeys({...apiKeys, supabaseAnon: e.target.value})} className="control-input" style={{ width: '100%' }} placeholder="eyJh..." /></div>
+              <div><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Project API URL</label><input type="text" value={apiKeys.supabaseUrl} onChange={e => setApiKeys({...apiKeys, supabaseUrl: e.target.value})} className="control-input" style={{ width: '100%', background: '#f8fafc' }} placeholder="https://xyz.supabase.co" /></div>
+              <div><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Anon API Key</label><input type="password" value={apiKeys.supabaseAnon} onChange={e => setApiKeys({...apiKeys, supabaseAnon: e.target.value})} className="control-input" style={{ width: '100%', background: '#f8fafc' }} placeholder="eyJh..." /></div>
             </div>
 
             {apiKeys.supabaseUrl && (
-                <div style={{background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '8px', marginBottom:'24px'}}>
-                  <div style={{fontSize:'12px', marginBottom:'8px', color: 'var(--text-secondary)'}}>Run this SQL in your Supabase SQL Editor once:</div>
+                <div style={{background: '#f1f5f9', padding: '12px', borderRadius: '8px', marginBottom:'24px', border: '1px solid #e2e8f0'}}>
+                  <div style={{fontSize:'12px', marginBottom:'8px', color: 'var(--text-secondary)', fontWeight: 600}}>Run this SQL in your Supabase Editor once:</div>
                   <div style={{display:'flex', gap: '8px', alignItems:'flex-start'}}>
-                    <pre style={{margin:0, fontSize:'11px', color:'#4ade80', overflowX:'auto'}}>{sqlSetupString}</pre>
+                    <pre style={{margin:0, fontSize:'11px', color:'#059669', overflowX:'auto'}}>{sqlSetupString}</pre>
                     <button className="btn" style={{padding:'4px 8px'}} onClick={() => {navigator.clipboard.writeText(sqlSetupString); setCopiedSql(true); setTimeout(() => setCopiedSql(false), 2000)}}>{copiedSql ? <Check size={14}/> : <Copy size={14}/>}</button>
                   </div>
                 </div>
@@ -208,27 +208,28 @@ const App = () => {
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Matrix Categories</label>
               <div style={{display:'flex', flexWrap:'wrap', gap:'6px', marginBottom:'8px'}}>
                  {categories.map(cat => (
-                    <span key={cat} style={{background: 'var(--border-color)', fontSize:'12px', padding:'2px 8px', borderRadius:'12px', display:'flex', alignItems:'center', gap:'4px'}}>
+                    <span key={cat} style={{background: '#f1f5f9', border: '1px solid #e2e8f0', fontSize:'12px', padding:'4px 10px', borderRadius:'12px', display:'flex', alignItems:'center', gap:'6px', fontWeight: 600}}>
                        {cat} <strong style={{cursor:'pointer', opacity:0.6}} onClick={()=>handleRemoveCategory(cat)}>×</strong>
                     </span>
                  ))}
               </div>
               <div style={{display:'flex', gap:'8px'}}>
-                <input type="text" className="control-input" placeholder="New category..." value={newCatName} onChange={e=>setNewCatName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddCategory()} style={{flex:1}}/>
+                <input type="text" className="control-input" placeholder="New category..." value={newCatName} onChange={e=>setNewCatName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddCategory()} style={{flex:1, background: '#f8fafc'}}/>
                 <button className="btn" onClick={handleAddCategory}>Add</button>
               </div>
             </div>
 
-            <button className="btn" style={{ width: '100%', justifyContent: 'center', padding: '14px', fontSize: '15px' }} onClick={saveSettings}>Apply & Synchronize</button>
+            <button className="btn" style={{ width: '100%', justifyContent: 'center', padding: '14px', fontSize: '15px', background: 'var(--text-primary)', color: '#fff' }} onClick={saveSettings}>Apply & Synchronize</button>
           </div>
         </div>
       )}
 
       <header className="header">
         <div className="header-title">
-           <div style={{display:'flex', background:'var(--card-bg)', p:4, borderRadius:'8px', overflow:'hidden', border: '1px solid var(--border-color)'}}>
-              <div onClick={()=>setViewMode('overview')} style={{padding:'6px 12px', cursor:'pointer', display:'flex', alignItems:'center', gap:'6px', fontSize:'13px', background: viewMode === 'overview' ? 'rgba(255,255,255,0.1)' : 'transparent', fontWeight: viewMode === 'overview' ? 600 : 400}}><LayoutDashboard size={14}/> Overview</div>
-              <div onClick={()=>setViewMode('matrix')} style={{padding:'6px 12px', cursor:'pointer', display:'flex', alignItems:'center', gap:'6px', fontSize:'13px', background: viewMode === 'matrix' ? 'rgba(255,255,255,0.1)' : 'transparent', fontWeight: viewMode === 'matrix' ? 600 : 400}}><Grid size={14}/> Matrix Report</div>
+           <img src="/sto-logo.png" alt="STO Logo" style={{ height: '32px', marginRight: '16px', objectFit: 'contain' }} />
+           <div style={{display:'flex', background:'#f8fafc', p:4, borderRadius:'8px', overflow:'hidden', border: '1px solid var(--border-color)'}}>
+              <div onClick={()=>setViewMode('overview')} style={{padding:'6px 12px', cursor:'pointer', display:'flex', alignItems:'center', gap:'6px', fontSize:'13px', background: viewMode === 'overview' ? '#e2e8f0' : 'transparent', fontWeight: viewMode === 'overview' ? 700 : 500}}><LayoutDashboard size={14}/> Overview</div>
+              <div onClick={()=>setViewMode('matrix')} style={{padding:'6px 12px', cursor:'pointer', display:'flex', alignItems:'center', gap:'6px', fontSize:'13px', background: viewMode === 'matrix' ? '#e2e8f0' : 'transparent', fontWeight: viewMode === 'matrix' ? 700 : 500}}><Grid size={14}/> Matrix Report</div>
            </div>
         </div>
         <div className="controls">
@@ -238,7 +239,7 @@ const App = () => {
           <input type="date" className="control-input" value={dateTo} onChange={e => setDateTo(e.target.value)} />
           <input type="text" className="control-input" placeholder="Filter..." value={campaignFilter} onChange={e => setCampaignFilter(e.target.value)} style={{ width: '80px' }} />
           <button className="btn" onClick={() => setShowSettings(true)}><Settings size={16} /></button>
-          <button className="btn" onClick={fetchData} disabled={loading}><RefreshCw size={16} className={loading ? 'spinner' : ''} /> {loading ? 'Fetching...' : 'Refresh'}</button>
+          <button className="btn" onClick={fetchData} disabled={loading} style={{ background: 'var(--text-primary)', color: '#fff' }}><RefreshCw size={16} className={loading ? 'spinner' : ''} /> {loading ? 'Fetching...' : 'Refresh'}</button>
         </div>
       </header>
 
@@ -272,7 +273,7 @@ const App = () => {
                     )}
                     <img src={post.imageUrl} alt="Creative"/>
                     <div className="post-network-icon" style={{ background: post.network === 'ig' ? 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)' : '#1877F2', width: 'auto', padding: '6px 12px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '6px', top: '12px', right: '12px' }}>
-                      <span style={{color: '#fff', fontSize: '11px', fontWeight: '600'}}>{post.network === 'ig' ? 'Instagram' : 'Facebook'}</span>
+                      <span style={{color: '#fff', fontSize: '11px', fontWeight: '700'}}>{post.network === 'ig' ? 'Instagram' : 'Facebook'}</span>
                     </div>
                   </div>
                   <div className="post-content">
@@ -325,13 +326,13 @@ const App = () => {
                                 const boxPosts = rowPosts.filter(p => p.monthKey === mk);
                                 return (
                                   <td key={mk} className="matrix-cell">
-                                    {boxPosts.length === 0 && <div style={{opacity:0.05, textAlign:'center', marginTop:'16px'}}>Empty</div>}
+                                    {boxPosts.length === 0 && <div style={{opacity:0.2, textAlign:'center', marginTop:'16px'}}>Empty</div>}
                                     {boxPosts.map(p => (
                                        <div key={p.id} className="matrix-mini-post">
                                           <div className="m-post-net" style={{background: p.network==='ig'?'linear-gradient(45deg, #f09433, #bc1888)':'#1877F2'}}>{p.network==='ig'?'IG':'FB'}</div>
                                           <img src={p.imageUrl} />
                                           <div className="m-data">
-                                             <div title={p.text} style={{fontWeight:600, fontSize:'12px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', marginBottom:'6px', color:'#fff'}}>{p.text}</div>
+                                             <div title={p.text} style={{fontWeight:700, fontSize:'12px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', marginBottom:'6px', color:'#000'}}>{p.text}</div>
                                              
                                              <div className="m-kpi-grid">
                                                 <div><span>Spend</span> €{p.metrics.spend.toFixed(0)}</div>
@@ -353,12 +354,52 @@ const App = () => {
                          )
                       })}
                     </tbody>
+                    <tfoot>
+                      <tr style={{ background: '#f8fafc', borderTop: '2px solid #cbd5e1' }}>
+                        <td className="sticky-cat" style={{ background: '#f8fafc', color: '#0f172a' }}>Monthly Totals</td>
+                        {uniqueMonthKeys.map(mk => {
+                            const monthPosts = posts.filter(p => p.monthKey === mk);
+                            const sums = {
+                                spend: monthPosts.reduce((s, p) => s + p.metrics.spend, 0),
+                                impressions: monthPosts.reduce((s, p) => s + p.metrics.impressions, 0),
+                                reach: monthPosts.reduce((s, p) => s + p.metrics.reach, 0),
+                                engagements: monthPosts.reduce((s, p) => s + p.metrics.engagements, 0),
+                                clicks: monthPosts.reduce((s, p) => s + p.metrics.clicks, 0),
+                                thruPlays: monthPosts.reduce((s, p) => s + p.metrics.thruPlays, 0),
+                                followers: monthPosts.reduce((s, p) => s + p.metrics.followers, 0),
+                            };
+                            return (
+                                <td key={`total-${mk}`} className="matrix-cell" style={{ verticalAlign: 'bottom' }}>
+                                   <div className="matrix-mini-post" style={{ background: '#fff', border: '2px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: 0 }}>
+                                      <div className="m-data">
+                                         <div style={{fontWeight:800, fontSize:'14px', color:'#000', marginBottom:'4px'}}>Total Impact</div>
+                                         <div className="m-kpi-grid" style={{background: 'transparent', border: 'none'}}>
+                                            <div style={{color:'#000', background:'#f1f5f9'}}><span>Spend</span> €{sums.spend.toFixed(0)}</div>
+                                            <div style={{color:'#000', background:'#f1f5f9'}}><span>Impr</span> {formatNumber(sums.impressions)}</div>
+                                            <div style={{color:'#000', background:'#f1f5f9'}}><span>Rch</span> {formatNumber(sums.reach)}</div>
+                                            <div style={{color:'#000', background:'#f1f5f9'}}><span>Eng</span> {formatNumber(sums.engagements)}</div>
+                                            <div style={{color:'#000', background:'#f1f5f9'}}><span>Clk</span> {formatNumber(sums.clicks)}</div>
+                                            <div style={{color:'#000', background:'#f1f5f9'}}><span>Ply</span> {formatNumber(sums.thruPlays)}</div>
+                                            <div style={{color:'#000', background:'#f1f5f9'}}><span>Fol</span> {formatNumber(sums.followers)}</div>
+                                         </div>
+                                      </div>
+                                   </div>
+                                </td>
+                            );
+                        })}
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               )}
            </div>
         )}
       </main>
+
+      <footer style={{ textAlign: 'center', padding: '4rem 1rem', borderTop: '1px solid var(--border-color)', marginTop: 'auto', background: '#fff' }}>
+         <div style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>Engineered by</div>
+         <img src="/opus-logo.png" alt="Opus Magnus" style={{ height: '36px', filter: 'invert(1)', objectFit: 'contain' }} />
+      </footer>
     </>
   );
 };
