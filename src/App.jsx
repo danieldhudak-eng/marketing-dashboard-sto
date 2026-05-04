@@ -126,7 +126,7 @@ const App = () => {
       const creativesResponse = await axios.get(`https://graph.facebook.com/v25.0/`, {
         params: {
           access_token: API_TOKEN, ids: adIds,
-          fields: 'created_time,creative{image_url,thumbnail_url,body,instagram_permalink_url,source_instagram_media_id,object_story_spec}'
+          fields: 'created_time,creative{image_url,thumbnail_url,body,instagram_permalink_url,source_instagram_media_id}'
         }
       });
 
@@ -150,23 +150,11 @@ const App = () => {
         const monthKey = `${cTime.getFullYear()}-${String(cTime.getMonth()+1).padStart(2, '0')}`;
         const monthLabel = cTime.toLocaleString('default', { month: 'short', year: 'numeric' });
 
-        let hdImage = creative.image_url || creative.thumbnail_url;
-        if (creative.object_story_spec) {
-            const spec = creative.object_story_spec;
-            if (spec.video_data && spec.video_data.image_url) {
-                hdImage = spec.video_data.image_url;
-            } else if (spec.link_data && spec.link_data.child_attachments && spec.link_data.child_attachments.length > 0) {
-                hdImage = spec.link_data.child_attachments[0].image_url || hdImage;
-            }
-        }
-        
-        const bestImageUrl = hdImage || 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=600&auto=format&fit=crop';
-
         return {
             id: ins.ad_id, monthKey, monthLabel,
             network: (creative.source_instagram_media_id || (ins.campaign_name || '').toLowerCase().includes('instagram')) ? 'ig' : 'fb',
             text: creative.body || ins.ad_name,
-            imageUrl: bestImageUrl,
+            imageUrl: creative.image_url || creative.thumbnail_url || 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=600&auto=format&fit=crop',
             metrics: { spend, impressions, reach, engagements: postEngagement, clicks: linkClicks, thruPlays, followers }
         };
       }).filter(post => post.text);
