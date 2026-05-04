@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { createClient } from '@supabase/supabase-js';
-import { RefreshCw, LayoutDashboard, Settings, Grid, Copy, Check } from 'lucide-react';
+import { RefreshCw, LayoutDashboard, Settings, Grid, Copy, Check, BarChart2 } from 'lucide-react';
+import { ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 const formatNumber = (num) => {
     if (num === null || num === undefined) return '0';
@@ -17,6 +18,10 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [campaignFilter, setCampaignFilter] = useState('Post'); 
   const [viewMode, setViewMode] = useState('overview');
+  
+  const [chartType, setChartType] = useState('bar');
+  const [selectedMetrics, setSelectedMetrics] = useState(['spend']);
+  const [analyticsCategory, setAnalyticsCategory] = useState('All');
 
   const [posts, setPosts] = useState([]);
   const [kpis, setKpis] = useState({ spend: 0, impressions: 0, reach: 0, thruPlays: 0, engagements: 0, linkClicks: 0, followers: 0 });
@@ -96,14 +101,7 @@ const App = () => {
     if (apiKeys.token) fetchData();
   };
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const API_TOKEN = apiKeys.token;
-      let accountId = account === 'cz' ? apiKeys.czId : apiKeys.skId;
-      if (!API_TOKEN || !accountId) { setShowSettings(true); setLoading(false); return; }
-      if (!accountId.startsWith('act_')) accountId = 'act_' + accountId;
-
+  const fetchAccountData = async (accountId, API_TOKEN, accountTag) => {
       const insightsResponse = await axios.get(`https://graph.facebook.com/v25.0/${accountId}/insights`, {
         params: {
           access_token: API_TOKEN, level: 'ad', time_range: JSON.stringify({ since: dateFrom, until: dateTo }),
@@ -112,7 +110,7 @@ const App = () => {
       });
 
       const insightsData = insightsResponse.data.data;
-      if (!insightsData || insightsData.length === 0) { setPosts([]); setKpis({ spend: 0, impressions: 0, reach: 0, thruPlays: 0, engagements: 0, linkClicks: 0, followers: 0 }); setLoading(false); return; }
+      if (!insightsData || insightsData.length === 0) return { posts: [], kpis: { spend: 0, impressions: 0, reach: 0, thruPlays: 0, engagements: 0, linkClicks: 0, followers: 0 } };
 
       const filteredInsights = insightsData.filter(ins => {
         if (!campaignFilter) return true;
@@ -120,7 +118,7 @@ const App = () => {
         return campaignFilter.startsWith('-') ? !cName.includes(campaignFilter.substring(1).trim()) : cName.includes(campaignFilter.toLowerCase().trim());
       });
 
-      if (filteredInsights.length === 0) { setPosts([]); setLoading(false); return; }
+      if (filteredInsights.length === 0) return { posts: [], kpis: { spend: 0, impressions: 0, reach: 0, thruPlays: 0, engagements: 0, linkClicks: 0, followers: 0 } };
 
       const adIds = filteredInsights.map(i => i.ad_id).join(',');
       const creativesResponse = await axios.get(`https://graph.facebook.com/v25.0/`, {
@@ -131,9 +129,9 @@ const App = () => {
       });
 
       const creativesData = creativesResponse.data;
-      let newKpis = { spend: 0, impressions: 0, reach: 0, thruPlays: 0, engagements: 0, linkClicks: 0, followers: 0 };
+      let subKpis = { spend: 0, impressions: 0, reach: 0, thruPlays: 0, engagements: 0, linkClicks: 0, followers: 0 };
       
-      const newPosts = filteredInsights.map(ins => {
+      const subPosts = filteredInsights.map(ins => {
         const adNode = creativesData[ins.ad_id] || {};
         const creative = adNode.creative || {};
         const getAction = (actions, type) => { const action = (actions || []).find(a => a.action_type === type); return action ? parseInt(action.value) : 0; };
@@ -143,15 +141,14 @@ const App = () => {
         const postEngagement = getAction(ins.actions, 'post_engagement'); const thruPlays = getAction(ins.actions, 'video_view');
         const followers = getAction(ins.actions, 'like');
 
-        newKpis.spend += spend; newKpis.impressions += impressions; newKpis.reach += reach;
-        newKpis.linkClicks += linkClicks; newKpis.engagements += postEngagement; newKpis.thruPlays += thruPlays; newKpis.followers += followers;
+        subKpis.spend += spend; subKpis.impressions += impressions; subKpis.reach += reach;
+        subKpis.linkClicks += linkClicks; subKpis.engagements += postEngagement; subKpis.thruPlays += thruPlays; subKpis.followers += followers;
 
         const cTime = adNode.created_time ? new Date(adNode.created_time) : new Date(dateFrom);
         const monthKey = `${cTime.getFullYear()}-${String(cTime.getMonth()+1).padStart(2, '0')}`;
         const monthLabel = cTime.toLocaleString('default', { month: 'short', year: 'numeric' });
 
         let hdImage = creative.image_url;
-        
         if (creative.object_story_spec) {
             const spec = creative.object_story_spec;
             if (spec.video_data?.image_url) hdImage = spec.video_data.image_url;
@@ -159,17 +156,15 @@ const App = () => {
             else if (spec.link_data?.child_attachments?.[0]?.image_url) hdImage = spec.link_data.child_attachments[0].image_url;
             else if (!hdImage && spec.link_data?.picture) hdImage = spec.link_data.picture;
         }
-        
         if (!hdImage && creative.asset_feed_spec) {
             const asset = creative.asset_feed_spec;
             if (asset.images?.[0]?.url) hdImage = asset.images[0].url;
             else if (asset.videos?.[0]?.thumbnail_url) hdImage = asset.videos[0].thumbnail_url;
         }
-
         const bestImageUrl = hdImage || creative.thumbnail_url || 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=600&auto=format&fit=crop';
 
         return {
-            id: ins.ad_id, monthKey, monthLabel,
+            id: ins.ad_id, monthKey, monthLabel, accountTag,
             network: (creative.source_instagram_media_id || (ins.campaign_name || '').toLowerCase().includes('instagram')) ? 'ig' : 'fb',
             text: creative.body || ins.ad_name,
             imageUrl: bestImageUrl,
@@ -177,7 +172,39 @@ const App = () => {
         };
       }).filter(post => post.text);
 
-      setKpis(newKpis); setPosts(newPosts);
+      return { posts: subPosts, kpis: subKpis };
+  };
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const API_TOKEN = apiKeys.token;
+      if (!API_TOKEN) { setShowSettings(true); setLoading(false); return; }
+
+      const cId = apiKeys.czId.startsWith('act_') ? apiKeys.czId : 'act_' + apiKeys.czId;
+      const sId = apiKeys.skId.startsWith('act_') ? apiKeys.skId : 'act_' + apiKeys.skId;
+
+      let accountsToFetch = [];
+      if (account === 'cz') accountsToFetch.push({ id: cId, tag: 'CZ' });
+      else if (account === 'sk') accountsToFetch.push({ id: sId, tag: 'SK' });
+      else if (account === 'both') {
+         if (apiKeys.czId) accountsToFetch.push({ id: cId, tag: 'CZ' });
+         if (apiKeys.skId) accountsToFetch.push({ id: sId, tag: 'SK' });
+      }
+
+      if (accountsToFetch.length === 0) { setShowSettings(true); setLoading(false); return; }
+
+      const results = await Promise.all(accountsToFetch.map(a => fetchAccountData(a.id, API_TOKEN, a.tag)));
+      
+      let finalPosts = [];
+      let finalKpis = { spend: 0, impressions: 0, reach: 0, thruPlays: 0, engagements: 0, linkClicks: 0, followers: 0 };
+
+      results.forEach(res => {
+         finalPosts = [...finalPosts, ...res.posts];
+         Object.keys(finalKpis).forEach(k => finalKpis[k] += res.kpis[k]);
+      });
+
+      setKpis(finalKpis); setPosts(finalPosts);
     } catch (err) {
       if (err.response?.status === 401 || err.response?.status === 400) setShowSettings(true);
       alert('API Error: ' + (err.response?.data?.error?.message || err.message));
@@ -186,6 +213,34 @@ const App = () => {
 
   const uniqueMonthKeys = [...new Set(posts.map(p => p.monthKey))].sort();
   const sqlSetupString = `create table if not exists app_state (\n  id integer primary key default 1,\n  categories jsonb default '["Case Study", "Reference"]'::jsonb,\n  tags jsonb default '{}'::jsonb\n);\ninsert into app_state (id) values (1) on conflict do nothing;`;
+
+  const generateChartData = () => {
+     return uniqueMonthKeys.map(mk => {
+        const monthPosts = posts.filter(p => {
+           if (p.monthKey !== mk) return false;
+           if (analyticsCategory === 'All') return true;
+           if (analyticsCategory === 'Uncategorized') return !tags[p.id];
+           return tags[p.id] === analyticsCategory;
+        });
+
+        const dataObj = { name: monthPosts[0]?.monthLabel || mk };
+
+        if (account === 'both') {
+           const czPosts = monthPosts.filter(p => p.accountTag === 'CZ');
+           const skPosts = monthPosts.filter(p => p.accountTag === 'SK');
+           
+           selectedMetrics.forEach(mKey => {
+              dataObj[`CZ_${mKey}`] = czPosts.reduce((s, p) => s + p.metrics[mKey], 0);
+              dataObj[`SK_${mKey}`] = skPosts.reduce((s, p) => s + p.metrics[mKey], 0);
+           });
+        } else {
+           selectedMetrics.forEach(mKey => {
+              dataObj[mKey] = monthPosts.reduce((s, p) => s + p.metrics[mKey], 0);
+           });
+        }
+        return dataObj;
+     });
+  };
 
   return (
     <>
@@ -248,10 +303,15 @@ const App = () => {
            <div style={{display:'flex', background:'#f8fafc', p:4, borderRadius:'8px', overflow:'hidden', border: '1px solid var(--border-color)'}}>
               <div onClick={()=>setViewMode('overview')} style={{padding:'6px 12px', cursor:'pointer', display:'flex', alignItems:'center', gap:'6px', fontSize:'13px', background: viewMode === 'overview' ? '#e2e8f0' : 'transparent', fontWeight: viewMode === 'overview' ? 700 : 500}}><LayoutDashboard size={14}/> Overview</div>
               <div onClick={()=>setViewMode('matrix')} style={{padding:'6px 12px', cursor:'pointer', display:'flex', alignItems:'center', gap:'6px', fontSize:'13px', background: viewMode === 'matrix' ? '#e2e8f0' : 'transparent', fontWeight: viewMode === 'matrix' ? 700 : 500}}><Grid size={14}/> Matrix Report</div>
+              <div onClick={()=>setViewMode('analytics')} style={{padding:'6px 12px', cursor:'pointer', display:'flex', alignItems:'center', gap:'6px', fontSize:'13px', background: viewMode === 'analytics' ? '#e2e8f0' : 'transparent', fontWeight: viewMode === 'analytics' ? 700 : 500}}><BarChart2 size={14}/> Analytics</div>
            </div>
         </div>
         <div className="controls">
-          <select className="control-input" value={account} onChange={(e) => setAccount(e.target.value)}><option value="cz">Czech 🇨🇿</option><option value="sk">Slovak 🇸🇰</option></select>
+          <select className="control-input" value={account} onChange={(e) => setAccount(e.target.value)}>
+            <option value="cz">Czech 🇨🇿</option>
+            <option value="sk">Slovak 🇸🇰</option>
+            <option value="both">Both 🇨🇿🇸🇰</option>
+          </select>
           <input type="date" className="control-input" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
           <span style={{ color: 'var(--text-secondary)' }}>to</span>
           <input type="date" className="control-input" value={dateTo} onChange={e => setDateTo(e.target.value)} />
@@ -410,6 +470,93 @@ const App = () => {
                   </table>
                 </div>
               )}
+           </div>
+        ) : viewMode === 'analytics' ? (
+           <div className="matrix-wrapper">
+              <div className="section-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                 Analytics Engine
+                 <div style={{display:'flex', gap:'12px', alignItems:'center', fontWeight: 'normal', fontSize: '13px'}}>
+                    <select className="control-input" value={chartType} onChange={e=>setChartType(e.target.value)}>
+                       <option value="bar">Bar Chart</option>
+                       <option value="line">Line Chart</option>
+                    </select>
+                    <select className="control-input" value={analyticsCategory} onChange={e=>setAnalyticsCategory(e.target.value)}>
+                       <option value="All">All Categories</option>
+                       <option value="Uncategorized">Uncategorized Only</option>
+                       {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                 </div>
+              </div>
+
+              <div style={{background:'#fff', borderRadius:'16px', padding:'24px', border:'1px solid var(--border-color)', marginBottom:'24px'}}>
+                 <div style={{display:'flex', flexWrap:'wrap', gap:'8px', marginBottom:'24px'}}>
+                   {['spend', 'impressions', 'reach', 'engagements', 'clicks', 'thruPlays', 'followers'].map(mKey => {
+                      const isActive = selectedMetrics.includes(mKey);
+                      return (
+                        <div key={mKey} onClick={() => {
+                           if(isActive && selectedMetrics.length > 1) setSelectedMetrics(selectedMetrics.filter(m=>m!==mKey));
+                           else if(!isActive) setSelectedMetrics([...selectedMetrics, mKey]);
+                        }} style={{padding:'6px 14px', borderRadius:'20px', fontSize:'12px', fontWeight:600, cursor:'pointer', border: isActive ? '1px solid #ffd100' : '1px solid #e2e8f0', background: isActive ? '#fffbeb' : '#f8fafc', color: isActive ? '#b45309' : '#64748b', transition:'all 0.2s'}}>
+                           {mKey.charAt(0).toUpperCase() + mKey.slice(1)}
+                        </div>
+                      )
+                   })}
+                 </div>
+
+                 {uniqueMonthKeys.length === 0 ? <div style={{color:'var(--text-secondary)'}}>No data found.</div> : (
+                   <div style={{height: '400px', width: '100%'}}>
+                     <ResponsiveContainer width="100%" height="100%">
+                        {chartType === 'bar' ? (
+                           <BarChart data={generateChartData()} margin={{top:20, right:30, left:20, bottom:5}}>
+                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill:'#64748b', fontSize:12}} dy={10} />
+                             <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{fill:'#64748b', fontSize:12}} tickFormatter={formatNumber} dx={-10} />
+                             {selectedMetrics.length > 1 && <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{fill:'#64748b', fontSize:12}} tickFormatter={formatNumber} dx={10} />}
+                             <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius:'8px', border:'none', boxShadow:'0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                             <Legend wrapperStyle={{paddingTop:'20px'}} />
+                             {selectedMetrics.map((mKey, idx) => {
+                                const yId = idx === 0 ? "left" : "right";
+                                if (account === 'both') {
+                                   return (
+                                     <React.Fragment key={mKey}>
+                                       <Bar yAxisId={yId} dataKey={`CZ_${mKey}`} name={`CZ ${mKey}`} fill={idx === 0 ? '#ffd100' : '#10b981'} radius={[4,4,0,0]} />
+                                       <Bar yAxisId={yId} dataKey={`SK_${mKey}`} name={`SK ${mKey}`} fill={idx === 0 ? '#1e293b' : '#3b82f6'} radius={[4,4,0,0]} />
+                                     </React.Fragment>
+                                   )
+                                } else {
+                                   const color = idx === 0 ? '#ffd100' : '#1e293b';
+                                   return <Bar key={mKey} yAxisId={yId} dataKey={mKey} name={mKey} fill={color} radius={[4,4,0,0]} />
+                                }
+                             })}
+                           </BarChart>
+                        ) : (
+                           <LineChart data={generateChartData()} margin={{top:20, right:30, left:20, bottom:5}}>
+                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill:'#64748b', fontSize:12}} dy={10} />
+                             <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{fill:'#64748b', fontSize:12}} tickFormatter={formatNumber} dx={-10} />
+                             {selectedMetrics.length > 1 && <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{fill:'#64748b', fontSize:12}} tickFormatter={formatNumber} dx={10} />}
+                             <Tooltip contentStyle={{borderRadius:'8px', border:'none', boxShadow:'0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                             <Legend wrapperStyle={{paddingTop:'20px'}} />
+                             {selectedMetrics.map((mKey, idx) => {
+                                const yId = idx === 0 ? "left" : "right";
+                                if (account === 'both') {
+                                   return (
+                                     <React.Fragment key={mKey}>
+                                       <Line yAxisId={yId} type="monotone" dataKey={`CZ_${mKey}`} name={`CZ ${mKey}`} stroke={idx === 0 ? '#ffd100' : '#10b981'} strokeWidth={3} dot={{r:4, strokeWidth:2}} activeDot={{r:6}} />
+                                       <Line yAxisId={yId} type="monotone" dataKey={`SK_${mKey}`} name={`SK ${mKey}`} stroke={idx === 0 ? '#1e293b' : '#3b82f6'} strokeWidth={3} dot={{r:4, strokeWidth:2}} activeDot={{r:6}} />
+                                     </React.Fragment>
+                                   )
+                                } else {
+                                   const color = idx === 0 ? '#ffd100' : '#1e293b';
+                                   return <Line key={mKey} yAxisId={yId} type="monotone" dataKey={mKey} name={mKey} stroke={color} strokeWidth={3} dot={{r:4, strokeWidth:2}} activeDot={{r:6}} />
+                                }
+                             })}
+                           </LineChart>
+                        )}
+                     </ResponsiveContainer>
+                   </div>
+                 )}
+              </div>
            </div>
         )}
       </main>
