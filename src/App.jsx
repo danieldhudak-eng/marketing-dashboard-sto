@@ -516,16 +516,18 @@ const App = () => {
                              <Legend wrapperStyle={{paddingTop:'20px'}} />
                              {selectedMetrics.map((mKey, idx) => {
                                 const yId = idx === 0 ? "left" : "right";
+                                const STO_COLORS = ['#ffd100', '#1e293b', '#eb0229', '#3f88cc', '#ededed', '#10b981'];
                                 if (account === 'both') {
+                                   const czCol = ['#ffd100', '#eb0229', '#10b981'][idx % 3];
+                                   const skCol = ['#1e293b', '#3f88cc', '#059669'][idx % 3];
                                    return (
                                      <React.Fragment key={mKey}>
-                                       <Bar yAxisId={yId} dataKey={`CZ_${mKey}`} name={`CZ ${mKey}`} fill={idx === 0 ? '#ffd100' : '#10b981'} radius={[4,4,0,0]} />
-                                       <Bar yAxisId={yId} dataKey={`SK_${mKey}`} name={`SK ${mKey}`} fill={idx === 0 ? '#1e293b' : '#3b82f6'} radius={[4,4,0,0]} />
+                                       <Bar yAxisId={yId} dataKey={`CZ_${mKey}`} name={`CZ ${mKey}`} fill={czCol} radius={[4,4,0,0]} />
+                                       <Bar yAxisId={yId} dataKey={`SK_${mKey}`} name={`SK ${mKey}`} fill={skCol} radius={[4,4,0,0]} />
                                      </React.Fragment>
                                    )
                                 } else {
-                                   const color = idx === 0 ? '#ffd100' : '#1e293b';
-                                   return <Bar key={mKey} yAxisId={yId} dataKey={mKey} name={mKey} fill={color} radius={[4,4,0,0]} />
+                                   return <Bar key={mKey} yAxisId={yId} dataKey={mKey} name={mKey} fill={STO_COLORS[idx % STO_COLORS.length]} radius={[4,4,0,0]} />
                                 }
                              })}
                            </BarChart>
@@ -539,16 +541,18 @@ const App = () => {
                              <Legend wrapperStyle={{paddingTop:'20px'}} />
                              {selectedMetrics.map((mKey, idx) => {
                                 const yId = idx === 0 ? "left" : "right";
+                                const STO_COLORS = ['#ffd100', '#1e293b', '#eb0229', '#3f88cc', '#ededed', '#10b981'];
                                 if (account === 'both') {
+                                   const czCol = ['#ffd100', '#eb0229', '#10b981'][idx % 3];
+                                   const skCol = ['#1e293b', '#3f88cc', '#059669'][idx % 3];
                                    return (
                                      <React.Fragment key={mKey}>
-                                       <Line yAxisId={yId} type="monotone" dataKey={`CZ_${mKey}`} name={`CZ ${mKey}`} stroke={idx === 0 ? '#ffd100' : '#10b981'} strokeWidth={3} dot={{r:4, strokeWidth:2}} activeDot={{r:6}} />
-                                       <Line yAxisId={yId} type="monotone" dataKey={`SK_${mKey}`} name={`SK ${mKey}`} stroke={idx === 0 ? '#1e293b' : '#3b82f6'} strokeWidth={3} dot={{r:4, strokeWidth:2}} activeDot={{r:6}} />
+                                       <Line yAxisId={yId} type="monotone" dataKey={`CZ_${mKey}`} name={`CZ ${mKey}`} stroke={czCol} strokeWidth={3} dot={{r:4, strokeWidth:2}} activeDot={{r:6}} />
+                                       <Line yAxisId={yId} type="monotone" dataKey={`SK_${mKey}`} name={`SK ${mKey}`} stroke={skCol} strokeWidth={3} dot={{r:4, strokeWidth:2}} activeDot={{r:6}} />
                                      </React.Fragment>
                                    )
                                 } else {
-                                   const color = idx === 0 ? '#ffd100' : '#1e293b';
-                                   return <Line key={mKey} yAxisId={yId} type="monotone" dataKey={mKey} name={mKey} stroke={color} strokeWidth={3} dot={{r:4, strokeWidth:2}} activeDot={{r:6}} />
+                                   return <Line key={mKey} yAxisId={yId} type="monotone" dataKey={mKey} name={mKey} stroke={STO_COLORS[idx % STO_COLORS.length]} strokeWidth={3} dot={{r:4, strokeWidth:2}} activeDot={{r:6}} />
                                 }
                              })}
                            </LineChart>
