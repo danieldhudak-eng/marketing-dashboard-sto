@@ -374,7 +374,7 @@ const App = () => {
               ))}
             </div>
            </>
-        ) : (
+        ) : viewMode === 'matrix' ? (
            <div className="matrix-wrapper">
               <div className="section-header">Categorical Timeline Report</div>
               {uniqueMonthKeys.length === 0 && <div style={{color:'var(--text-secondary)'}}>No data found for this date range.</div>}
@@ -558,7 +558,7 @@ const App = () => {
                  )}
               </div>
            </div>
-        )}
+        ) : null}
       </main>
 
       <footer style={{ textAlign: 'center', padding: '4rem 1rem', borderTop: '1px solid var(--border-color)', marginTop: 'auto', background: '#fff' }}>
