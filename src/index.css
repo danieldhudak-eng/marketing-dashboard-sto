@@ -362,3 +362,67 @@ body {
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 .tag-selector:focus { border-color: var(--accent-color); }
+
+/* Responsive Media Queries */
+@media (max-width: 1024px) {
+  .header {
+    flex-direction: column;
+    padding: 1rem;
+    gap: 1rem;
+  }
+  .header-title {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .controls {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .container {
+    padding: 1.5rem 1rem;
+  }
+  .posts-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+  .control-input {
+    width: 100% !important;
+  }
+  .controls .btn {
+    justify-content: center;
+  }
+  /* The section header inside Analytics can stack */
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .section-header > div {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .controls {
+    grid-template-columns: 1fr;
+  }
+  .posts-grid {
+    grid-template-columns: 1fr;
+  }
+  .m-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
