@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { createClient } from '@supabase/supabase-js';
-import { RefreshCw, LayoutDashboard, Settings, Grid, Copy, Check, BarChart2 } from 'lucide-react';
+import { RefreshCw, LayoutDashboard, Settings, Grid, Copy, Check, BarChart2, Share } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 const formatNumber = (num) => {
@@ -36,6 +36,28 @@ const App = () => {
   const [copiedSql, setCopiedSql] = useState(false);
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const payload = searchParams.get('payload');
+    
+    if (payload) {
+        try {
+            const parsed = JSON.parse(atob(payload));
+            if (parsed.apiKeys) setApiKeys(parsed.apiKeys);
+            if (parsed.apiKeys?.supabaseUrl && parsed.apiKeys?.supabaseAnon) {
+               const client = createClient(parsed.apiKeys.supabaseUrl, parsed.apiKeys.supabaseAnon);
+               setSupabaseClient(client);
+               loadCloudState(client);
+            }
+            if (parsed.viewMode) setViewMode(parsed.viewMode);
+            if (parsed.account) setAccount(parsed.account);
+            if (parsed.dateFrom) setDateFrom(parsed.dateFrom);
+            if (parsed.dateTo) setDateTo(parsed.dateTo);
+            if (parsed.selectedMetrics) setSelectedMetrics(parsed.selectedMetrics);
+            if (parsed.chartType) setChartType(parsed.chartType);
+            return; 
+        } catch (e) { console.error("Invalid share payload"); }
+    }
+
     const today = new Date();
     const lastMonth = new Date();
     lastMonth.setDate(today.getDate() - 30);
@@ -89,7 +111,7 @@ const App = () => {
 
   useEffect(() => {
     if (dateFrom && dateTo && apiKeys.token) fetchData();
-  }, [dateFrom, dateTo, account]);
+  }, [dateFrom, dateTo, account, apiKeys.token]);
 
   const saveSettings = () => {
     localStorage.setItem('meta_dashboard_keys', JSON.stringify(apiKeys));
@@ -242,6 +264,16 @@ const App = () => {
      });
   };
 
+  const generateShareLink = () => {
+      const payloadObj = {
+          apiKeys, viewMode, account, dateFrom, dateTo, selectedMetrics, chartType
+      };
+      const encoded = btoa(JSON.stringify(payloadObj));
+      const url = `${window.location.origin}${window.location.pathname}?payload=${encoded}`;
+      navigator.clipboard.writeText(url);
+      alert('Share link copied to clipboard! Anyone with this link can view the dashboard exactly as it is now.');
+  };
+
   return (
     <>
       {showSettings && (
@@ -316,6 +348,7 @@ const App = () => {
           <span style={{ color: 'var(--text-secondary)' }}>to</span>
           <input type="date" className="control-input" value={dateTo} onChange={e => setDateTo(e.target.value)} />
           <input type="text" className="control-input" placeholder="Filter..." value={campaignFilter} onChange={e => setCampaignFilter(e.target.value)} style={{ width: '80px' }} />
+          <button className="btn" onClick={generateShareLink} style={{ background: '#f8fafc', color: '#0f172a', border: '1px solid #cbd5e1' }}><Share size={16} /> Share View</button>
           <button className="btn" onClick={() => setShowSettings(true)}><Settings size={16} /></button>
           <button className="btn" onClick={fetchData} disabled={loading} style={{ background: 'var(--text-primary)', color: '#fff' }}><RefreshCw size={16} className={loading ? 'spinner' : ''} /> {loading ? 'Fetching...' : 'Refresh'}</button>
         </div>
