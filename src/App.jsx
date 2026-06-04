@@ -138,8 +138,15 @@ const App = () => {
   };
 
   const syncCloudState = async (newCategories, newTags) => {
-      if (!supabaseClient) return;
-      await supabaseClient.from('app_state').upsert({ id: 1, categories: newCategories, tags: newTags });
+      if (!supabaseClient) {
+          console.warn('[sync] Supabase not configured — changes will not persist');
+          return;
+      }
+      const { error } = await supabaseClient.from('app_state').upsert({ id: 1, categories: newCategories, tags: newTags });
+      if (error) {
+          console.error('[sync] Failed to save to Supabase:', error);
+          alert('Failed to save: ' + error.message + '\n\nMost likely cause: Row Level Security blocking writes. Run in Supabase SQL Editor:\nalter table app_state disable row level security;');
+      }
   };
 
   const handleAddCategory = () => {
