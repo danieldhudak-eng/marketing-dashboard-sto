@@ -87,6 +87,31 @@ const dedupeDays = (rows) => {
    return [...byKey.values()];
 };
 
+// Meta caps `ids` at 50 per request — a wide date range easily exceeds that.
+const chunk = (arr, size) => {
+   const out = [];
+   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+   return out;
+};
+
+// Insights responses are paginated; without following `paging.next` a long
+// range silently returns only the first page instead of erroring.
+const fetchAllInsights = async (url, params, maxPages = 25) => {
+   const rows = [];
+   let res = await axios.get(url, { params });
+   rows.push(...(res.data.data || []));
+   let next = res.data.paging?.next;
+   let pages = 1;
+   while (next && pages < maxPages) {
+      res = await axios.get(next);
+      rows.push(...(res.data.data || []));
+      next = res.data.paging?.next;
+      pages++;
+   }
+   if (next) console.warn(`[insights] stopped at ${maxPages} pages; some rows may be missing`);
+   return rows;
+};
+
 // Bucket a YYYY-MM-DD into the selected granularity.
 const bucketOf = (iso, granularity) => {
    if (granularity === 'month') return iso.slice(0, 7);
@@ -396,22 +421,21 @@ const App = () => {
       const baseFields = 'ad_id,ad_name,campaign_name,spend,impressions,reach,inline_link_clicks,actions,video_play_actions';
       const timeRange = JSON.stringify({ since: dateFrom, until: dateTo });
 
-      const [insightsResponse, platformResponse] = await Promise.all([
-        axios.get(`https://graph.facebook.com/v25.0/${accountId}/insights`, {
-          params: { access_token: API_TOKEN, level: 'ad', time_range: timeRange, limit: 150, fields: baseFields }
+      const [insightsData, platformRows] = await Promise.all([
+        fetchAllInsights(`${GRAPH}/${accountId}/insights`, {
+          access_token: API_TOKEN, level: 'ad', time_range: timeRange, limit: 150, fields: baseFields
         }),
-        axios.get(`https://graph.facebook.com/v25.0/${accountId}/insights`, {
-          params: { access_token: API_TOKEN, level: 'ad', time_range: timeRange, limit: 500, fields: baseFields, breakdowns: 'publisher_platform' }
+        fetchAllInsights(`${GRAPH}/${accountId}/insights`, {
+          access_token: API_TOKEN, level: 'ad', time_range: timeRange, limit: 500, fields: baseFields, breakdowns: 'publisher_platform'
         }),
       ]);
 
-      const insightsData = insightsResponse.data.data;
       if (!insightsData || insightsData.length === 0) return { posts: [], kpis: { spend: 0, impressions: 0, reach: 0, thruPlays: 0, engagements: 0, linkClicks: 0, followers: 0 } };
 
       // Build a per-ad map of platform breakdowns
       const getAct = (actions, type) => { const a = (actions || []).find(x => x.action_type === type); return a ? parseInt(a.value) : 0; };
       const platformByAd = {};
-      (platformResponse.data.data || []).forEach(row => {
+      platformRows.forEach(row => {
           const platform = row.publisher_platform;
           if (platform !== 'facebook' && platform !== 'instagram') return;
           if (!platformByAd[row.ad_id]) platformByAd[row.ad_id] = {};
@@ -434,15 +458,13 @@ const App = () => {
 
       if (filteredInsights.length === 0) return { posts: [], kpis: { spend: 0, impressions: 0, reach: 0, thruPlays: 0, engagements: 0, linkClicks: 0, followers: 0 } };
 
-      const adIds = filteredInsights.map(i => i.ad_id).join(',');
-      const creativesResponse = await axios.get(`https://graph.facebook.com/v25.0/`, {
-        params: {
-          access_token: API_TOKEN, ids: adIds,
-          fields: 'created_time,creative{image_url,thumbnail_url,body,instagram_permalink_url,source_instagram_media_id,object_story_spec,asset_feed_spec}'
-        }
-      });
-
-      const creativesData = creativesResponse.data;
+      // Batched in groups of 50 — Meta rejects the whole call above that limit.
+      const creativeFields = 'created_time,creative{image_url,thumbnail_url,body,instagram_permalink_url,source_instagram_media_id,object_story_spec,asset_feed_spec}';
+      const idBatches = chunk(filteredInsights.map(i => i.ad_id), 50);
+      const batchResponses = await Promise.all(idBatches.map(ids =>
+        axios.get(`${GRAPH}/`, { params: { access_token: API_TOKEN, ids: ids.join(','), fields: creativeFields } })
+      ));
+      const creativesData = Object.assign({}, ...batchResponses.map(r => r.data));
       let subKpis = { spend: 0, impressions: 0, reach: 0, thruPlays: 0, engagements: 0, linkClicks: 0, followers: 0 };
       
       const subPosts = filteredInsights.map(ins => {
@@ -566,7 +588,7 @@ const App = () => {
   // last 30 days. The absolute curve is reconstructed backwards from the current
   // followers_count, so historical totals are an approximation (unfollows are
   // not exposed by the API). Anything older comes from stored snapshots.
-  const fetchInstagramFollowers = async (igId, token, accountTag, currentTotal, notes) => {
+  const fetchInstagramFollowers = async (igId, userToken, pageToken, accountTag, currentTotal, notes) => {
      const rows = [];
      const today = toISODate(new Date());
      const earliest = addDays(today, -29);
@@ -574,17 +596,31 @@ const App = () => {
      const until = daysBetween(dateTo, today) > 0 ? dateTo : today;
      if (daysBetween(since, until) < 0) return rows;
 
+     const request = (accessToken) => axios.get(`${GRAPH}/${igId}/insights`, {
+        params: { access_token: accessToken, metric: 'follower_count', period: 'day', since, until },
+     });
+
      let daily = [];
      try {
-        const res = await axios.get(`${GRAPH}/${igId}/insights`, {
-           params: { access_token: token, metric: 'follower_count', period: 'day', since, until },
-        });
+        // Meta documents follower_count as requiring a *user* token. Page tokens
+        // work in some setups, so that is the fallback rather than the default.
+        let res;
+        try { res = await request(userToken); }
+        catch (first) {
+           if (!pageToken || pageToken === userToken) throw first;
+           res = await request(pageToken);
+        }
         daily = ((res.data.data || [])[0]?.values || [])
            .map(v => ({ day: (v.end_time || '').split('T')[0], gained: Number(v.value) || 0 }))
            .filter(v => v.day)
            .sort((a, b) => a.day.localeCompare(b.day));
      } catch (e) {
-        notes.push(`Instagram (${accountTag}): ${e.response?.data?.error?.message || e.message}`);
+        const msg = e.response?.data?.error?.message || e.message;
+        notes.push(
+           /100 follower/i.test(msg)
+              ? `Instagram (${accountTag}): ${msg} — Meta hides follower_count below 100 followers.`
+              : `Instagram (${accountTag}): ${msg}`
+        );
      }
 
      // Walk backwards from today's known total to derive each day's total.
@@ -630,7 +666,7 @@ const App = () => {
            const ig = meta.instagram_business_account;
            if (ig?.id) {
               current.push({ account: page.tag, platform: 'instagram', handle: ig.username ? '@' + ig.username : ig.id, total: Number(ig.followers_count ?? 0) });
-              rawRows.push(...await fetchInstagramFollowers(ig.id, pageToken, page.tag, Number(ig.followers_count ?? 0), notes));
+              rawRows.push(...await fetchInstagramFollowers(ig.id, token, pageToken, page.tag, Number(ig.followers_count ?? 0), notes));
            } else {
               notes.push(`No Instagram business account linked to page ${meta.name || page.id} (${page.tag}).`);
            }
@@ -991,7 +1027,9 @@ const App = () => {
             <h3 style={{fontSize: '15px', marginBottom: '4px'}}>Follower Tracking 👥</h3>
             <p style={{fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px'}}>
               Facebook Page IDs for organic follower growth. The linked Instagram business account is detected automatically.
-              The token needs <code>pages_read_engagement</code>, <code>read_insights</code>, <code>instagram_basic</code> and <code>instagram_manage_insights</code>.
+              The token needs <code>pages_show_list</code>, <code>pages_read_engagement</code>, <code>read_insights</code>, <code>instagram_basic</code>
+              and <code>instagram_manage_insights</code>. Instagram must be a Business or Creator account linked to the page, with 100+ followers
+              (Meta hides <code>follower_count</code> below that).
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
               <div><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Czech Facebook Page ID</label><input type="text" value={apiKeys.czPageId} onChange={e => setApiKeys({...apiKeys, czPageId: e.target.value})} className="control-input" style={{ width: '100%', background: '#f8fafc' }} placeholder="1234567890" /></div>
