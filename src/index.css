@@ -427,6 +427,66 @@ body {
   }
 }
 
+/* Channel filter bar */
+.channel-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.75rem;
+}
+.channel-bar-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+.channel-bar-note {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.channel-switch {
+  display: inline-flex;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.channel-switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border-color);
+  padding: 0.5rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.channel-switch-btn:last-child { border-right: none; }
+.channel-switch-btn:hover { background: var(--bg-card-hover); }
+.channel-switch-btn.active { color: #fff; }
+.channel-switch-btn.all.active { background: var(--text-primary); }
+.channel-switch-btn.facebook.active { background: #1877F2; }
+.channel-switch-btn.instagram.active {
+  background: linear-gradient(45deg, #f09433 0%, #dc2743 55%, #bc1888 100%);
+}
+.channel-count {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+.channel-switch-btn.active .channel-count {
+  background: rgba(255, 255, 255, 0.25);
+}
+
 /* Multi-platform badge (post card uses absolute positioning for top-right corner) */
 .platform-badges {
   position: absolute;
